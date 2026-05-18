@@ -18,6 +18,7 @@ import { WilayahVersionPage } from './pages/wilayah/WilayahVersionPage'; // IMPO
 import { ApiWilayahPage } from './pages/api-portal/ApiWilayahPage';
 import { ApiLogPage } from './pages/api-portal/ApiLogPage';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
+import { ApiWilayahStorePage } from './pages/api-portal/ApiWilayahStorePage';
 
 const NotFoundPage = () => {
   const navigate = useNavigate();
@@ -109,6 +110,7 @@ function App() {
             <Route path="wilayah" element={<WilayahPage />} />
             <Route path="wilayah/versions" element={<WilayahVersionPage />} />
             <Route path="wilayah/:id/log" element={<WilayahLogPage />} />
+            <Route path="/api/store-wilayah" element={<ApiWilayahStorePage />} />
             <Route path="/api/wilayah" element={<ApiWilayahPage />} />
             <Route path="/api/logs" element={<ApiLogPage />} />
           </Route>

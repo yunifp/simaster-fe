@@ -1,15 +1,13 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable react-hooks/set-state-in-effect */
 import React, { useEffect, useState, useCallback } from 'react';
 import { api } from '../../services/api';
 import { useWilayah } from '../../hooks/useWilayah';
 import type { ApiKey } from '../../hooks/useWilayah'; 
 import { 
     Code2, Server, Copy, Check, Archive, CheckCircle, 
-    Lock, FileJson, AlertOctagon, ChevronDown, ChevronUp, 
+    Lock, FileJson, AlertOctagon, ChevronDown, 
     KeyRound, Plus, PowerOff, List, Wand2, Search, MapPin,
-    Eye, EyeOff, TerminalSquare, Braces, Globe
+    Eye, EyeOff, TerminalSquare, Braces, Globe, Flame
 } from 'lucide-react';
 
 type SnippetLang = 'CURL' | 'JS' | 'PHP';
@@ -26,6 +24,10 @@ export const ApiWilayahPage: React.FC = () => {
     const [newClientName, setNewClientName] = useState('');
     const [showKeyModal, setShowKeyModal] = useState(false);
     const [revealedKeys, setRevealedKeys] = useState<Record<string, boolean>>({});
+
+    // 🔥 State Khusus Modal Konfirmasi Putus Koneksi (Revoke) 🔥
+    const [confirmRevokeKey, setConfirmRevokeKey] = useState<{ id: string; clientName: string } | null>(null);
+    const [isRevoking, setIsRevoking] = useState<boolean>(false);
 
     // Builder State
     const [showBuilder, setShowBuilder] = useState(false);
@@ -94,11 +96,18 @@ export const ApiWilayahPage: React.FC = () => {
         } else alert(res.message);
     };
 
-    const handleRevokeKey = async (id: string) => {
-        if (confirm("🚨 YAKIN MENCABUT AKSES?\nAplikasi klien yang menggunakan kunci ini akan langsung terputus (Error 401).")) {
-            const res = await revokeApiKey(id);
-            if (res.success) loadApiKeys();
-            else alert(res.message);
+    // 🔥 Eksekusi Pemutusan Koneksi dari dalam Modal Glowing 🔥
+    const executeRevokeConnection = async () => {
+        if (!confirmRevokeKey) return;
+        setIsRevoking(true);
+        const res = await revokeApiKey(confirmRevokeKey.id);
+        setIsRevoking(false);
+
+        if (res.success) {
+            setConfirmRevokeKey(null);
+            loadApiKeys();
+        } else {
+            alert(res.message);
         }
     };
 
@@ -119,7 +128,7 @@ export const ApiWilayahPage: React.FC = () => {
 
     const baseUrl = window.location.origin.includes('localhost') 
         ? 'http://localhost:8000/api/wilayah' 
-        : 'https://api.kpu.go.id/wilayah';
+        : 'http://203.210.84.69:8237/be/wilayah';
 
     const generateDynamicUrl = () => {
         const q = new URLSearchParams();
@@ -144,7 +153,7 @@ export const ApiWilayahPage: React.FC = () => {
     };
 
     return (
-        <div className="space-y-8 pb-10">
+        <div className="space-y-8 pb-10 font-sans">
             {/* HERO SECTION (MAROON & GOLD) */}
             <div className="bg-gradient-to-br from-[#500000] to-[#300000] rounded-[2rem] p-8 md:p-12 text-white shadow-2xl relative overflow-hidden border border-[#400000]">
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
@@ -170,16 +179,16 @@ export const ApiWilayahPage: React.FC = () => {
             </div>
 
             {/* TABS NAVIGATION */}
-            <div className="flex border-b border-slate-200 bg-white/50 backdrop-blur-sm sticky top-0 z-30 px-2 pt-2 rounded-t-3xl">
+            <div className="flex border-b border-slate-200 bg-white/50 backdrop-blur-sm top-0 z-30 px-2 pt-2 rounded-t-3xl">
                 <button 
                     onClick={() => setActiveTab('DOCS')} 
-                    className={`pb-4 px-6 font-bold text-sm transition-all border-b-[3px] flex items-center gap-2 ${activeTab === 'DOCS' ? 'border-[#500000] text-[#500000] bg-red-50/50 rounded-t-xl' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl'}`}
+                    className={`pb-4 px-6 font-bold text-sm transition-all border-b-[3px] flex items-center gap-2 cursor-pointer ${activeTab === 'DOCS' ? 'border-[#500000] text-[#500000] bg-red-50/50 rounded-t-xl' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl'}`}
                 >
                     <Code2 size={18} /> Dokumentasi Endpoint
                 </button>
                 <button 
                     onClick={() => setActiveTab('KEYS')} 
-                    className={`pb-4 px-6 font-bold text-sm transition-all border-b-[3px] flex items-center gap-2 ${activeTab === 'KEYS' ? 'border-[#500000] text-[#500000] bg-red-50/50 rounded-t-xl' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl'}`}
+                    className={`pb-4 px-6 font-bold text-sm transition-all border-b-[3px] flex items-center gap-2 cursor-pointer ${activeTab === 'KEYS' ? 'border-[#500000] text-[#500000] bg-red-50/50 rounded-t-xl' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl'}`}
                 >
                     <KeyRound size={18} /> Credentials (API Keys)
                 </button>
@@ -213,7 +222,7 @@ export const ApiWilayahPage: React.FC = () => {
                                 </div>
                             </div>
                             <div className="flex gap-3 items-center text-xs font-bold px-4 py-2.5 rounded-lg border border-red-900/50 bg-[#400000]/50 text-red-200">
-                                <AlertOctagon size={16} className="text-yellow-400" />
+                                <AlertOctagon size={16} className="text-yellow-400 shrink-0" />
                                 Rate Limit: 100 req/menit (HTTP 429). Gunakan parameter limit dengan bijak.
                             </div>
                         </div>
@@ -259,15 +268,15 @@ export const ApiWilayahPage: React.FC = () => {
                                                 <div className="bg-[#0d1117] rounded-xl p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-inner group">
                                                     <div className="flex items-center gap-4 overflow-x-auto no-scrollbar w-full">
                                                         <span className="bg-emerald-500/20 text-emerald-400 font-black text-[10px] px-3 py-1.5 rounded-lg uppercase tracking-wider border border-emerald-500/30 shrink-0 shadow-[0_0_15px_rgba(16,185,129,0.1)]">GET COLLECTION</span>
-                                                        <code className="text-[13px] md:text-sm font-mono text-slate-300 whitespace-nowrap">
+                                                        <code className="text-[13px] md:text-sm font-mono text-slate-300 whitespace-nowrap select-all">
                                                             {endpointAll}
                                                         </code>
                                                     </div>
                                                     <div className="flex gap-2 w-full md:w-auto shrink-0">
-                                                        <button onClick={() => openBuilder(ver.nomor_versi)} className="flex-1 md:flex-none flex items-center justify-center gap-2 p-2.5 bg-gradient-to-r from-yellow-500 to-yellow-400 hover:from-yellow-400 hover:to-yellow-300 text-[#500000] rounded-lg transition-all shadow-lg shadow-yellow-900/20 font-black text-xs active:scale-95">
+                                                        <button onClick={() => openBuilder(ver.nomor_versi)} className="flex-1 md:flex-none flex items-center justify-center gap-2 p-2.5 bg-gradient-to-r from-yellow-500 to-yellow-400 hover:from-yellow-400 hover:to-yellow-300 text-[#500000] rounded-lg transition-all shadow-lg shadow-yellow-900/20 font-black text-xs active:scale-95 cursor-pointer">
                                                             <Wand2 size={16} /> Builder
                                                         </button>
-                                                        <button onClick={() => handleCopy(endpointAll, `${ver.nomor_versi}_all`)} className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors border border-slate-600">
+                                                        <button onClick={() => handleCopy(endpointAll, `${ver.nomor_versi}_all`)} className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors border border-slate-600 cursor-pointer">
                                                             {copiedId === `${ver.nomor_versi}_all` ? <Check size={16} className="text-emerald-400"/> : <Copy size={16}/>}
                                                         </button>
                                                     </div>
@@ -279,17 +288,17 @@ export const ApiWilayahPage: React.FC = () => {
                                                 <div className="bg-[#0d1117] rounded-xl p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-inner group">
                                                     <div className="flex items-center gap-4 overflow-x-auto no-scrollbar w-full">
                                                         <span className="bg-blue-500/20 text-blue-400 font-black text-[10px] px-3 py-1.5 rounded-lg uppercase tracking-wider border border-blue-500/30 shrink-0 shadow-[0_0_15px_rgba(59,130,246,0.1)]">GET DETAIL (ID)</span>
-                                                        <code className="text-[13px] md:text-sm font-mono text-slate-300 whitespace-nowrap">
+                                                        <code className="text-[13px] md:text-sm font-mono text-slate-300 whitespace-nowrap select-all">
                                                             {endpointDetail}
                                                         </code>
                                                     </div>
-                                                    <button onClick={() => handleCopy(endpointDetail, `${ver.nomor_versi}_detail`)} className="p-2.5 w-full md:w-auto flex justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors border border-slate-600 shrink-0">
+                                                    <button onClick={() => handleCopy(endpointDetail, `${ver.nomor_versi}_detail`)} className="p-2.5 w-full md:w-auto flex justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors border border-slate-600 shrink-0 cursor-pointer">
                                                         {copiedId === `${ver.nomor_versi}_detail` ? <Check size={16} className="text-emerald-400"/> : <Copy size={16}/>}
                                                     </button>
                                                 </div>
                                             </div>
 
-                                            <button onClick={() => toggleExpand(ver.id_version.toString())} className="w-full flex justify-between items-center bg-white hover:bg-red-50 text-[#500000] font-black text-xs uppercase tracking-wider py-4 px-6 rounded-2xl border-2 border-red-100 hover:border-red-300 transition-all mt-4">
+                                            <button onClick={() => toggleExpand(ver.id_version.toString())} className="w-full flex justify-between items-center bg-white hover:bg-red-50 text-[#500000] font-black text-xs uppercase tracking-wider py-4 px-6 rounded-2xl border-2 border-red-100 hover:border-red-300 transition-all mt-4 cursor-pointer">
                                                 <span className="flex items-center gap-2.5"><FileJson size={18} className="text-yellow-600"/> API Reference (Schema & Props)</span>
                                                 <div className={`transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}><ChevronDown size={20} /></div>
                                             </button>
@@ -377,7 +386,7 @@ export const ApiWilayahPage: React.FC = () => {
                             <h2 className="text-2xl font-black mb-1">Manajemen Akses M2M</h2>
                             <p className="text-sm text-red-100/70 font-medium">Buat dan pantau kunci akses rahasia (API Keys) untuk aplikasi eksternal KPU.</p>
                         </div>
-                        <button onClick={() => setShowKeyModal(true)} className="mt-4 md:mt-0 bg-yellow-500 text-[#500000] px-6 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-yellow-400 shadow-[0_0_20px_rgba(234,179,8,0.3)] transition-all active:scale-95">
+                        <button onClick={() => setShowKeyModal(true)} className="mt-4 md:mt-0 bg-yellow-500 text-[#500000] px-6 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-yellow-400 shadow-[0_0_20px_rgba(234,179,8,0.3)] transition-all active:scale-95 cursor-pointer">
                             <Plus size={20} /> Generate New Key
                         </button>
                     </div>
@@ -403,10 +412,10 @@ export const ApiWilayahPage: React.FC = () => {
                                                     <code className="bg-slate-900 text-yellow-400 font-mono text-xs px-4 py-2 rounded-xl border border-slate-700 shadow-inner w-64 block truncate select-all transition-all duration-300">
                                                         {revealedKeys[key.id_key] ? key.api_key : maskKey(key.api_key)}
                                                     </code>
-                                                    <button onClick={() => toggleKeyReveal(key.id_key)} className="text-slate-400 hover:text-[#500000] p-2 bg-white rounded-lg border border-slate-200 hover:border-red-300 shadow-sm transition-all" title={revealedKeys[key.id_key] ? "Hide Key" : "Reveal Key"}>
+                                                    <button onClick={() => toggleKeyReveal(key.id_key)} className="text-slate-400 hover:text-[#500000] p-2 bg-white rounded-lg border border-slate-200 hover:border-red-300 shadow-sm transition-all cursor-pointer" title={revealedKeys[key.id_key] ? "Hide Key" : "Reveal Key"}>
                                                         {revealedKeys[key.id_key] ? <EyeOff size={16}/> : <Eye size={16}/>}
                                                     </button>
-                                                    <button onClick={() => handleCopy(key.api_key, key.id_key)} className="text-slate-400 hover:text-[#500000] p-2 bg-white rounded-lg border border-slate-200 hover:border-red-300 shadow-sm transition-all" title="Copy to Clipboard">
+                                                    <button onClick={() => handleCopy(key.api_key, key.id_key)} className="text-slate-400 hover:text-[#500000] p-2 bg-white rounded-lg border border-slate-200 hover:border-red-300 shadow-sm transition-all cursor-pointer" title="Copy to Clipboard">
                                                         {copiedId === key.id_key ? <Check size={16} className="text-emerald-500"/> : <Copy size={16}/>}
                                                     </button>
                                                 </div>
@@ -421,9 +430,15 @@ export const ApiWilayahPage: React.FC = () => {
                                             <td className="p-6 text-slate-500 text-xs font-medium">
                                                 {new Date(key.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
                                             </td>
+
+                                            {/* 🔥 Tombol Pemicu Modal Konfirmasi Berapi 🔥 */}
                                             <td className="p-6 text-center">
                                                 {key.is_active ? (
-                                                    <button onClick={() => handleRevokeKey(key.id_key)} className="p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 hover:border-red-200 rounded-xl border border-transparent transition-all opacity-0 group-hover:opacity-100" title="Revoke Access">
+                                                    <button 
+                                                        onClick={() => setConfirmRevokeKey({ id: key.id_key, clientName: key.client_name })} 
+                                                        className="p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 hover:border-red-200 rounded-xl border border-transparent transition-all opacity-0 group-hover:opacity-100 cursor-pointer" 
+                                                        title="Putuskan Koneksi Kredensial (Revoke)"
+                                                    >
                                                         <PowerOff size={18} />
                                                     </button>
                                                 ): (
@@ -458,7 +473,7 @@ export const ApiWilayahPage: React.FC = () => {
                                     <p className="text-xs text-red-200 font-mono mt-0.5 tracking-wider">TARGET: {buildVersion}</p>
                                 </div>
                             </div>
-                            <button onClick={() => setShowBuilder(false)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#300000] text-red-200 hover:text-white transition-colors border border-transparent hover:border-red-900">
+                            <button onClick={() => setShowBuilder(false)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#300000] text-red-200 hover:text-white transition-colors border border-transparent hover:border-red-900 cursor-pointer">
                                 <PowerOff size={20} />
                             </button>
                         </div>
@@ -491,7 +506,7 @@ export const ApiWilayahPage: React.FC = () => {
                                         {bResults.length > 0 && !bSelectedParent && (
                                             <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] border border-slate-200 overflow-hidden max-h-60 overflow-y-auto">
                                                 {bResults.map(res => (
-                                                    <button key={res.id_wilayah} onClick={() => selectParentWilayah(res)} className="w-full text-left px-5 py-3 hover:bg-red-50/50 border-b border-slate-100 last:border-0 flex items-center gap-3 transition-colors">
+                                                    <button key={res.id_wilayah} onClick={() => selectParentWilayah(res)} className="w-full text-left px-5 py-3 hover:bg-red-50/50 border-b border-slate-100 last:border-0 flex items-center gap-3 transition-colors cursor-pointer">
                                                         <MapPin size={18} className="text-[#500000] shrink-0" />
                                                         <div>
                                                             <div className="text-sm font-bold text-slate-800">{res.nama_wilayah}</div>
@@ -502,7 +517,7 @@ export const ApiWilayahPage: React.FC = () => {
                                             </div>
                                         )}
                                         {bSelectedParent && (
-                                            <button onClick={clearParentSelection} className="absolute right-3 top-3 p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><PowerOff size={16}/></button>
+                                            <button onClick={clearParentSelection} className="absolute right-3 top-3 p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"><PowerOff size={16}/></button>
                                         )}
                                     </div>
                                 </div>
@@ -549,7 +564,7 @@ export const ApiWilayahPage: React.FC = () => {
                                         </p>
                                         <button 
                                             onClick={() => handleCopy(generateDynamicUrl(), 'builder')} 
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl transition-all shadow-md backdrop-blur-sm border border-slate-600"
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl transition-all shadow-md backdrop-blur-sm border border-slate-600 cursor-pointer"
                                             title="Copy URL"
                                         >
                                             {copiedId === 'builder' ? <Check size={18} className="text-emerald-400"/> : <Copy size={18}/>}
@@ -569,7 +584,7 @@ export const ApiWilayahPage: React.FC = () => {
                                                 <button 
                                                     key={lang}
                                                     onClick={() => setSnippetLang(lang)}
-                                                    className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${snippetLang === lang ? 'bg-white text-[#500000] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                                    className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${snippetLang === lang ? 'bg-white text-[#500000] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                                                 >
                                                     {lang === 'JS' ? 'Fetch API' : lang}
                                                 </button>
@@ -580,8 +595,8 @@ export const ApiWilayahPage: React.FC = () => {
                                     <div className="bg-[#0d1117] rounded-2xl p-5 flex-1 shadow-inner border border-slate-700/50 relative group flex items-start overflow-hidden">
                                         <pre className="font-mono text-[11px] md:text-[13px] leading-relaxed text-slate-300 whitespace-pre-wrap overflow-y-auto w-full h-full custom-scrollbar pr-12">
 {getSnippet(generateDynamicUrl(), snippetLang).split('\n').map((line, i) => {
-    // Basic syntax highlighting logic for aesthetic purposes
-    let highlighted = line
+    // 🔥 PERBAIKAN PREFER-CONST DI SINI 🔥
+    const highlighted = line
         .replace(/'([^']+)'/g, "<span class='text-emerald-300'>'$1'</span>")
         .replace(/"([^"]+)"/g, '<span class="text-emerald-300">"$1"</span>')
         .replace(/(fetch|curl|curl_init|curl_setopt|curl_exec|curl_close|echo|\.then|\.catch|method|headers|console\.log|console\.error)/g, "<span class='text-blue-400'>$1</span>")
@@ -591,7 +606,7 @@ export const ApiWilayahPage: React.FC = () => {
                                         </pre>
                                         <button 
                                             onClick={() => handleCopy(getSnippet(generateDynamicUrl(), snippetLang), 'snippet')} 
-                                            className="absolute right-4 top-4 p-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl transition-all shadow-md backdrop-blur-sm border border-slate-600"
+                                            className="absolute right-4 top-4 p-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl transition-all shadow-md backdrop-blur-sm border border-slate-600 cursor-pointer"
                                             title="Copy Code"
                                         >
                                             {copiedId === 'snippet' ? <Check size={18} className="text-emerald-400"/> : <Copy size={18}/>}
@@ -624,8 +639,8 @@ export const ApiWilayahPage: React.FC = () => {
                                 <p className="text-[11px] text-slate-500 font-medium mt-2 leading-relaxed">Sistem akan meng-generate token rahasia 32-byte unik untuk aplikasi ini.</p>
                             </div>
                             <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                                <button type="button" onClick={() => setShowKeyModal(false)} className="px-6 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-100 hover:text-slate-700 rounded-xl transition-colors">Batal</button>
-                                <button type="submit" disabled={isGenerating} className="bg-gradient-to-r from-yellow-500 to-yellow-400 text-[#500000] px-6 py-2.5 rounded-xl font-black hover:from-yellow-400 hover:to-yellow-300 shadow-[0_0_15px_rgba(234,179,8,0.3)] active:scale-95 disabled:opacity-50 transition-all flex items-center gap-2">
+                                <button type="button" onClick={() => setShowKeyModal(false)} className="px-6 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-100 hover:text-slate-700 rounded-xl transition-colors cursor-pointer">Batal</button>
+                                <button type="submit" disabled={isGenerating} className="bg-gradient-to-r from-yellow-500 to-yellow-400 text-[#500000] px-6 py-2.5 rounded-xl font-black hover:from-yellow-400 hover:to-yellow-300 shadow-[0_0_15px_rgba(234,179,8,0.3)] active:scale-95 disabled:opacity-50 transition-all flex items-center gap-2 cursor-pointer">
                                     {isGenerating ? <div className="w-4 h-4 border-2 border-[#500000] border-t-transparent rounded-full animate-spin"></div> : "Generate"}
                                 </button>
                             </div>
@@ -633,6 +648,68 @@ export const ApiWilayahPage: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* ================================================================= */}
+            {/* 🔥 MODAL KONFIRMASI REVOKE GLOWING DANGER (MOTIF FLAME) 🔥 */}
+            {/* ================================================================= */}
+            {confirmRevokeKey && (
+                <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md animate-in fade-in duration-300">
+                    
+                    {/* Flame Ambiance Glow di Layar Belakang */}
+                    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[80vw] h-[60vh] bg-gradient-to-t from-red-600/30 via-orange-600/10 to-transparent filter blur-[120px] animate-pulse"></div>
+                        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-red-600/20 rounded-full filter blur-[90px]"></div>
+                    </div>
+
+                    {/* Kartu Modal Utama */}
+                    <div className="relative w-full max-w-lg rounded-[2rem] border-2 bg-gradient-to-b from-[#300000] via-[#150000] to-black border-red-500 shadow-[0_0_80px_rgba(239,68,68,0.8)] text-white p-8 overflow-hidden transition-all animate-in zoom-in-95 duration-300">
+                        
+                        {/* Motif Grafis Bara Api / Flame */}
+                        <div className="absolute inset-0 pointer-events-none opacity-50 mix-blend-screen overflow-hidden">
+                            <div className="absolute -bottom-10 left-1/4 w-32 h-48 bg-orange-500 rounded-full filter blur-xl animate-pulse"></div>
+                            <div className="absolute -bottom-12 left-1/2 w-48 h-64 bg-red-600 rounded-full filter blur-2xl animate-pulse delay-75"></div>
+                            <div className="absolute -bottom-8 right-1/4 w-32 h-40 bg-yellow-500 rounded-full filter blur-xl animate-pulse delay-150"></div>
+                            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/fire.png')] opacity-30"></div>
+                        </div>
+
+                        <div className="relative z-10 flex flex-col items-center text-center space-y-4">
+                            
+                            {/* Ikon Header Menyala */}
+                            <div className="p-4 rounded-full border bg-gradient-to-t from-red-600 to-orange-500 border-red-400 text-white shadow-[0_0_40px_rgba(249,115,22,1)] animate-bounce">
+                                <Flame size={44} className="fill-yellow-300 stroke-red-100 animate-pulse" />
+                            </div>
+
+                            {/* Judul Menyala / Mewah */}
+                            <h3 className="text-2xl font-black tracking-wider uppercase text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-orange-400 to-red-500 drop-shadow-[0_2px_15px_rgba(239,68,68,1)]">
+                                PUTUSKAN KONEKSI KREDENSIAL?
+                            </h3>
+
+                            {/* Peringatan Bahaya Eksplisit */}
+                            <p className="text-xs sm:text-sm font-bold leading-relaxed text-slate-200 bg-black/60 backdrop-blur-md p-4 rounded-xl border border-white/10 w-full shadow-inner font-mono">
+                                Aplikasi <span className="text-yellow-400 underline font-black">{confirmRevokeKey.clientName}</span> akan langsung terputus dari sistem (Error 401 Unauthorized) dan tidak dapat lagi melakukan pembacaan (GET) data secara permanen.
+                            </p>
+
+                            {/* Tombol Aksi Konfirmasi */}
+                            <div className="flex gap-3 w-full mt-4 pt-2">
+                                <button 
+                                    onClick={() => setConfirmRevokeKey(null)}
+                                    disabled={isRevoking}
+                                    className="flex-1 py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all cursor-pointer"
+                                >
+                                    Batal
+                                </button>
+                                <button 
+                                    onClick={executeRevokeConnection}
+                                    disabled={isRevoking}
+                                    className="flex-1 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest bg-gradient-to-r from-red-600 via-orange-600 to-yellow-600 hover:from-red-500 hover:via-orange-500 hover:to-yellow-500 text-white shadow-[0_0_25px_rgba(239,68,68,0.8)] border border-orange-400/50 transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                                >
+                                    {isRevoking ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : "Ya, Putuskan 🔥"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
-};      
+};

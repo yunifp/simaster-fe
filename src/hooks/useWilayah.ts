@@ -10,12 +10,9 @@ interface FetchParams {
   level?: string;
   parent_id?: string | null | 'null';
   is_active?: boolean;
-  status?: string; // <--- Filter status
+  status?: string;
 }
 
-// ==========================================
-// INTERFACE BARU UNTUK API KEY
-// ==========================================
 export interface ApiKey {
   id_key: string;
   client_name: string;
@@ -24,6 +21,21 @@ export interface ApiKey {
   created_at: string;
   last_used_at: string | null;
 }
+
+// Interface untuk data tunggal store eksternal
+export interface StoreExternalItem {
+  kode_pro?: string;
+  kode_kab?: string;
+  kode_kec?: string;
+  kode_kel?: string;
+  nama_wilayah: string;
+  level: string;
+  sumber: string;
+  parent_id?: string | null;
+}
+
+// Payload bisa berupa satu item atau array massal (bulk)
+export type StoreExternalPayload = StoreExternalItem | StoreExternalItem[];
 
 export const useWilayah = () => {
   const [wilayahs, setWilayahs] = useState<Wilayah[]>([]);
@@ -56,7 +68,7 @@ export const useWilayah = () => {
   }, []);
 
   const fetchVersions = useCallback(async () => {
-    setIsLoading(true); // Tambahkan loading state agar UI tab mulus
+    setIsLoading(true);
     try {
       const response = await api.get("/wilayah/versions");
       setVersions(response.data.data);
@@ -107,7 +119,7 @@ export const useWilayah = () => {
   };
 
   // ==========================================
-  // FUNGSI BARU UNTUK API KEY MANAGEMENT
+  // API KEY MANAGEMENT
   // ==========================================
   const fetchApiKeys = useCallback(async () => {
     try {
@@ -137,6 +149,30 @@ export const useWilayah = () => {
     }
   };
 
+  // =====================================================================
+  // STORE EXTERNAL WILAYAH (MENDUKUNG SINGLE & BULK MASSAL)
+  // =====================================================================
+  const storeExternalWilayah = async (apiKey: string, payload: StoreExternalPayload) => {
+    try {
+      const response = await api.post("/wilayah/store", payload, {
+        headers: {
+          "X-API-KEY": apiKey
+        }
+      });
+      return { 
+        success: true, 
+        message: response.data?.message || "Berhasil menyimpan data.", 
+        data: response.data?.data,
+        meta: response.data?.meta 
+      };
+    } catch (err: any) {
+      return { 
+        success: false, 
+        message: err.response?.data?.message || err.response?.data?.error || err.message || "Gagal menyimpan data eksternal." 
+      };
+    }
+  };
+
   return {
     wilayahs,
     versions,
@@ -149,9 +185,9 @@ export const useWilayah = () => {
     fetchWilayahLogs,
     fetchVersions,
     createVersion,
-    // Jangan lupa ekspor fungsi baru ini agar bisa dipanggil di UI:
     fetchApiKeys,
     generateApiKey,
-    revokeApiKey
+    revokeApiKey,
+    storeExternalWilayah
   };
 };
